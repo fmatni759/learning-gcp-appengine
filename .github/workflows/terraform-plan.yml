@@ -1,0 +1,66 @@
+name: "Terraform Plan — Preview des changements"
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  terraform-plan:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: "📥 Checkout du code"
+        uses: actions/checkout@v4
+
+      - name: "🔐 Authentification GCP"
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: "⚙️ Setup Terraform"
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: "🔧 Terraform Init"
+        working-directory: terraform
+        run: terraform init
+
+      - name: "✅ Terraform Validate"
+        working-directory: terraform
+        run: terraform validate
+
+      - name: "📋 Terraform Plan"
+        id: plan
+        working-directory: terraform
+        run: |
+          terraform plan \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="environment=dev" \
+            -no-color
+        continue-on-error: true
+
+      - name: "💬 Commenter la PR avec le plan"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `## 📋 Terraform Plan
+            \`\`\`
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            **Statut:** ${{ steps.plan.outcome == 'success' && '✅ Succès' || '❌ Échec' }}
+            *Par: @${{ github.actor }}*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      - name: "🚫 Échouer si plan invalide"
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
