@@ -11,15 +11,17 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      id-token: write
 
     steps:
       - name: "📥 Checkout du code"
         uses: actions/checkout@v4
 
-      - name: "🔐 Authentification GCP"
+      - name: "🔐 Authentification GCP via Workload Identity"
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: "⚙️ Setup Terraform"
         uses: hashicorp/setup-terraform@v3
