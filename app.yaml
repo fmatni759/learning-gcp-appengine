@@ -1,15 +1,11 @@
-Set-Content app.yaml @"
 runtime: python312
 env: standard
-
 instance_class: F1
 
 automatic_scaling:
   min_idle_instances: 0
   max_idle_instances: 1
   max_instances: 5
-  min_pending_latency: automatic
-  max_pending_latency: automatic
 
 env_variables:
   ENVIRONMENT: "production"
@@ -17,7 +13,3 @@ env_variables:
 handlers:
   - url: /.*
     script: auto
-"@
-
-# Vérifier
-cat app.yaml
